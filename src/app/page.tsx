@@ -126,7 +126,7 @@ export default function MasterLandingPage() {
                 </p>
 
                 {agent.link !== "#" ? (
-                  <Link href={agent.link} target="_blank" className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all hover:scale-105 shadow-[0_0_20px_rgba(220,38,38,0.4)]">
+                  <Link href={agent.link} {...(agent.link.startsWith("http") ? { target: "_blank" } : {})} className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all hover:scale-105 shadow-[0_0_20px_rgba(220,38,38,0.4)]">
                     Try It Now Live
                     <ArrowRight className="w-4 h-4" />
                   </Link>

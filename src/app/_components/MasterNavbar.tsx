@@ -23,6 +23,7 @@ export default function MasterNavbar() {
                     {/* Desktop nav */}
                     <div className="hidden md:flex items-center gap-8 text-sm font-medium">
                         <Link href="#agents" className="text-gray-300 hover:text-white transition-colors">Explore Agents</Link>
+                        <Link href="/idea-validation" className="text-gray-300 hover:text-white transition-colors">Idea Validation</Link>
                         <Link href="#agents" className="text-gray-300 hover:text-white transition-colors">Capabilities</Link>
                         <Link href="https://startup.oneasy.ai/" target="_blank" className="relative group px-6 py-2.5 rounded-xl font-bold text-white overflow-hidden">
                             <div className="absolute inset-0 bg-gradient-to-r from-red-600 to-red-800 transition-transform group-hover:scale-105" />
@@ -45,6 +46,7 @@ export default function MasterNavbar() {
             {isOpen && (
                 <div className="md:hidden bg-[#0A0A0A] border-b border-white/10 p-6 space-y-4">
                     <Link href="#agents" className="block text-xl font-bold text-gray-300 hover:text-white" onClick={() => setIsOpen(false)}>Explore Agents</Link>
+                    <Link href="/idea-validation" className="block text-xl font-bold text-gray-300 hover:text-white" onClick={() => setIsOpen(false)}>Idea Validation</Link>
                     <Link href="#agents" className="block text-xl font-bold text-gray-300 hover:text-white" onClick={() => setIsOpen(false)}>Capabilities</Link>
                     <Link href="https://startup.oneasy.ai/" target="_blank" className="block w-full text-center mt-6 px-5 py-3 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold rounded-xl hover:opacity-90 transition-opacity" onClick={() => setIsOpen(false)}>
                         Get Started Free
