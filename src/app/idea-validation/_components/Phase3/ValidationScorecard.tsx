@@ -120,14 +120,18 @@ export default function ValidationScorecard({ data }: ValidationScorecardProps) 
           <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-yellow-400">
             Weaknesses
           </h3>
-          <ul className="space-y-2">
-            {data.weaknesses.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-yellow-500" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          {data.weaknesses.length > 0 ? (
+            <ul className="space-y-2">
+              {data.weaknesses.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-gray-300">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-yellow-500" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-gray-500 italic">No significant weaknesses identified</p>
+          )}
         </motion.div>
 
         {/* Risks */}
