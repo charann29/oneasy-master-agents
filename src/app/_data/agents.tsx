@@ -40,7 +40,7 @@ AI: Sure! Here are 5 trade name suggestions with available domains.`
             'Estimated Company Valuation',
             'Pitch Deck Generation'
         ],
-        link: 'https://businessmodel.oneasy.ai/',
+        link: '/idea-validation',
         example: `User: I have a SaaS idea.
 AI: Let's validate it! Who's your target customer?
 User: Small business owners.
