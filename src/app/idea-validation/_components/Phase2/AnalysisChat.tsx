@@ -4,6 +4,12 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
 import type { ChatMessage } from "@/app/idea-validation/_types";
+import {
+  getInitialSummary,
+  getClarifyingQuestions,
+  getFinalSummary,
+  type ConversationQuestion,
+} from "@/app/idea-validation/_lib/conversationEngine";
 import AnalysisLoader from "./AnalysisLoader";
 import ChatBubble from "./ChatBubble";
 import ChatInput from "./ChatInput";
@@ -23,71 +29,6 @@ function createMessage(role: "ai" | "user", content: string): ChatMessage {
 
 /** Small delay helper */
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-
-// ---------------------------------------------------------------------------
-// Question categories for conversational refinement
-// ---------------------------------------------------------------------------
-
-type QuestionCategory =
-  | "target_audience"
-  | "competitors"
-  | "validation"
-  | "unfair_advantage";
-
-interface QuestionDef {
-  category: QuestionCategory;
-  question: string;
-}
-
-function pickQuestions(inputs: {
-  target_customer: string;
-  solution_differentiation: string;
-  problem_statement: string;
-  business_idea: string;
-  target_location: string;
-}): QuestionDef[] {
-  const questions: QuestionDef[] = [];
-
-  // Determine which question to ask first based on inputs
-  const wordCount = (s: string) => s.trim().split(/\s+/).length;
-
-  if (wordCount(inputs.target_customer) < 50) {
-    questions.push({
-      category: "target_audience",
-      question: `You mentioned your target customers are **"${inputs.target_customer}"**. Can you narrow that down a bit more? For example, what specific segment within that group would be your ideal early adopters — think demographics, behaviors, or pain intensity. The more specific, the sharper our analysis will be.`,
-    });
-  }
-
-  if (
-    !inputs.solution_differentiation.toLowerCase().includes("competitor") &&
-    !inputs.solution_differentiation.toLowerCase().includes("vs") &&
-    !inputs.solution_differentiation.toLowerCase().includes("compared")
-  ) {
-    questions.push({
-      category: "competitors",
-      question: `I want to map your competitive landscape accurately. Who do you see as your **top 2-3 competitors** (direct or indirect) in ${inputs.target_location || "your target market"}? And what specifically makes your approach different from theirs?`,
-    });
-  }
-
-  if (
-    !inputs.problem_statement.toLowerCase().includes("interview") &&
-    !inputs.problem_statement.toLowerCase().includes("talk") &&
-    !inputs.problem_statement.toLowerCase().includes("survey") &&
-    !inputs.problem_statement.toLowerCase().includes("validat")
-  ) {
-    questions.push({
-      category: "validation",
-      question: `Have you had any conversations with potential customers about this problem? Even informal chats count — I'm looking for any early signals like people saying "I'd pay for that" or showing strong interest. If yes, roughly how many people have you spoken with?`,
-    });
-  }
-
-  questions.push({
-    category: "unfair_advantage",
-    question: `What's your **unfair advantage** here? This could be domain expertise, unique relationships, proprietary tech, or a personal experience that gives you a unique insight into this problem. What makes *you* the right person or team to build this?`,
-  });
-
-  return questions;
-}
 
 // ---------------------------------------------------------------------------
 // Typing Indicator
@@ -124,27 +65,55 @@ function TypingIndicator() {
 }
 
 // ---------------------------------------------------------------------------
+// Map question categories to refinement fields
+// ---------------------------------------------------------------------------
+
+function storeRefinementFromResponse(
+  category: string,
+  userResponse: string,
+  setRefinements: (r: Record<string, string>) => void,
+) {
+  switch (category) {
+    case "target_audience":
+      setRefinements({ target_narrowed: userResponse });
+      break;
+    case "competitors":
+      setRefinements({ differentiation_clarified: userResponse });
+      break;
+    case "validation":
+    case "unfair_advantage":
+      setRefinements({ additional_context: userResponse });
+      break;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // AnalysisChat Component
 // ---------------------------------------------------------------------------
 
 export default function AnalysisChat() {
-  const { state, addChatMessage, setPhase } = useIdeaValidation();
+  const { state, addChatMessage, setPhase, setRefinements } = useIdeaValidation();
   const { inputs, chatMessages } = state;
 
   const [showLoader, setShowLoader] = useState(() => chatMessages.length === 0);
   const [isAiTyping, setIsAiTyping] = useState(false);
-  const [conversationRound, setConversationRound] = useState(() => {
-    // Recover round from existing messages if user navigated away and back
+  const [isComplete, setIsComplete] = useState(false);
+
+  // Use refs for conversation tracking to avoid stale closure issues
+  const conversationRoundRef = useRef(() => {
     const userMessages = chatMessages.filter((m) => m.role === "user");
     return Math.min(userMessages.length, 3);
   });
-  const [isComplete, setIsComplete] = useState(false);
+  const roundRef = useRef(conversationRoundRef.current());
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const hasInitializedRef = useRef(chatMessages.length > 0);
-  const questionsRef = useRef<QuestionDef[]>(pickQuestions(inputs));
-  // Track which categories have been used
-  const usedCategoriesRef = useRef<Set<QuestionCategory>>(new Set());
+
+  // Get questions from the conversation engine
+  const questionsRef = useRef<ConversationQuestion[]>(
+    getClarifyingQuestions(inputs),
+  );
+  const usedCategoriesRef = useRef<Set<string>>(new Set());
 
   // -----------------------------------------------------------------------
   // Auto-scroll to bottom when messages change or typing state changes
@@ -176,17 +145,20 @@ export default function AnalysisChat() {
   // -----------------------------------------------------------------------
   // Pick the next question, avoiding already-used categories
   // -----------------------------------------------------------------------
-  const getNextQuestion = useCallback((): string => {
+  const getNextQuestion = useCallback((): ConversationQuestion => {
     const available = questionsRef.current.filter(
       (q) => !usedCategoriesRef.current.has(q.category),
     );
     if (available.length === 0) {
-      // Fallback
-      return "Is there anything else about your idea that you think would be important for me to know?";
+      return {
+        category: "general",
+        question:
+          "Is there anything else about your idea that you think would be important for me to know?",
+      };
     }
     const pick = available[0];
     usedCategoriesRef.current.add(pick.category);
-    return pick.question;
+    return pick;
   }, []);
 
   // -----------------------------------------------------------------------
@@ -196,18 +168,8 @@ export default function AnalysisChat() {
     if (showLoader || hasInitializedRef.current) return;
     hasInitializedRef.current = true;
 
-    const contextLabel =
-      inputs.context_type === "new_idea"
-        ? "new idea"
-        : inputs.context_type === "existing_business"
-          ? "existing business"
-          : inputs.context_type === "new_product"
-            ? "new product"
-            : inputs.context_type === "pivot"
-              ? "pivot"
-              : "idea";
-
-    const summaryContent = `I've completed my initial analysis of your **${contextLabel}** idea. Here's what I found so far:\n\n**Business Idea:** ${inputs.business_idea || "Your concept"}\n**Target Market:** ${inputs.target_customer || "Not specified"} in ${inputs.target_location || "your chosen market"}\n**Core Problem:** ${inputs.problem_statement ? inputs.problem_statement.slice(0, 120) + (inputs.problem_statement.length > 120 ? "..." : "") : "Not specified"}\n\nI've identified some promising market signals and a few areas that need deeper exploration. I have a few questions to refine my analysis...`;
+    // Use conversation engine for initial summary
+    const summaryContent = getInitialSummary(inputs);
 
     let cancelled = false;
 
@@ -217,8 +179,8 @@ export default function AnalysisChat() {
       if (cancelled) return;
 
       // Send first clarifying question after a short pause
-      const firstQuestion = getNextQuestion();
-      await sendAiMessage(firstQuestion, 1500);
+      const firstQ = getNextQuestion();
+      await sendAiMessage(firstQ.question, 1500);
     })();
 
     return () => {
@@ -238,15 +200,22 @@ export default function AnalysisChat() {
       const userMsg = createMessage("user", text);
       addChatMessage(userMsg);
 
-      const nextRound = conversationRound + 1;
-      setConversationRound(nextRound);
+      // Store the user's response as a refinement based on the last question category
+      const lastUsedCategories = Array.from(usedCategoriesRef.current);
+      const lastCategory = lastUsedCategories[lastUsedCategories.length - 1];
+      if (lastCategory) {
+        storeRefinementFromResponse(lastCategory, text, setRefinements);
+      }
+
+      const nextRound = roundRef.current + 1;
+      roundRef.current = nextRound;
 
       if (nextRound >= 2) {
         // Final summary — conversation is done
         setIsComplete(true);
 
-        const finalContent = `Excellent! I now have a comprehensive understanding of your idea. Here's what I've captured:\n\n✓ **Business concept:** ${inputs.business_idea || "Your idea"}\n✓ **Target market:** ${inputs.target_customer || "Your target audience"} in ${inputs.target_location || "your market"}\n✓ **Key problem:** ${inputs.problem_statement ? inputs.problem_statement.slice(0, 80) + "..." : "As described"}\n✓ **Differentiation:** ${inputs.solution_differentiation ? inputs.solution_differentiation.slice(0, 80) + "..." : "As described"}\n✓ **Refined insights from our conversation**\n\nGenerating your detailed reports now...`;
-
+        // Use conversation engine for final summary
+        const finalContent = getFinalSummary(inputs);
         await sendAiMessage(finalContent, 1500);
 
         // Transition to Phase 3 after a short delay
@@ -262,19 +231,19 @@ export default function AnalysisChat() {
         const ack =
           acknowledgments[Math.floor(Math.random() * acknowledgments.length)];
         const nextQ = getNextQuestion();
-        const aiContent = `${ack}\n\n${nextQ}`;
+        const aiContent = `${ack}\n\n${nextQ.question}`;
         await sendAiMessage(aiContent, 1500);
       }
     },
     [
       isComplete,
       isAiTyping,
-      conversationRound,
       addChatMessage,
       sendAiMessage,
       getNextQuestion,
       inputs,
       setPhase,
+      setRefinements,
     ],
   );
 
@@ -316,12 +285,8 @@ export default function AnalysisChat() {
           className="flex-1 overflow-y-auto p-6 space-y-4"
         >
           <AnimatePresence mode="popLayout">
-            {chatMessages.map((msg, idx) => (
-              <ChatBubble
-                key={msg.id}
-                message={msg}
-                isLatest={idx === chatMessages.length - 1}
-              />
+            {chatMessages.map((msg) => (
+              <ChatBubble key={msg.id} message={msg} />
             ))}
           </AnimatePresence>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
@@ -84,7 +84,7 @@ export default function QuestionForm() {
 
   const [error, setError] = useState<string | null>(null);
   const [shaking, setShaking] = useState(false);
-  const directionRef = useRef(1);
+  const [direction, setDirection] = useState(1);
 
   const handleNext = useCallback(() => {
     const validationError = getValidationError(currentStep, inputs);
@@ -101,14 +101,14 @@ export default function QuestionForm() {
     if (currentStep === TOTAL_STEPS) {
       setPhase(2);
     } else {
-      directionRef.current = 1;
+      setDirection(1);
       nextStep();
     }
   }, [currentStep, inputs, nextStep, setPhase]);
 
   const handleBack = useCallback(() => {
     setError(null);
-    directionRef.current = -1;
+    setDirection(-1);
     prevStep();
   }, [prevStep]);
 
@@ -124,10 +124,10 @@ export default function QuestionForm() {
 
       {/* Step content with animation */}
       <div className="relative min-h-[400px]">
-        <AnimatePresence mode="wait" custom={directionRef.current}>
+        <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentStep}
-            custom={directionRef.current}
+            custom={direction}
             variants={slideVariants}
             initial="enter"
             animate="center"

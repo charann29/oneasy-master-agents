@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+// Note: HYDRATE action type retained for potential future use but hydration now uses lazy initializer
 import type {
   IdeaValidationInputs,
   IdeaValidationState,
@@ -156,20 +157,20 @@ const STORAGE_KEY = 'idea-validation-state';
 // ---------------------------------------------------------------------------
 
 export function IdeaValidationProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
-
-  // Hydrate from sessionStorage on mount
-  useEffect(() => {
+  // Use lazy initializer to hydrate from sessionStorage synchronously,
+  // avoiding a flash of initial state on page refresh.
+  const [state, dispatch] = useReducer(reducer, initialState, (init) => {
+    if (typeof window === 'undefined') return init;
     try {
       const stored = sessionStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed: IdeaValidationState = JSON.parse(stored);
-        dispatch({ type: 'HYDRATE', payload: parsed });
+        return JSON.parse(stored) as IdeaValidationState;
       }
     } catch {
-      // sessionStorage unavailable (SSR) or corrupt data – use initial state
+      // sessionStorage unavailable or corrupt data – use initial state
     }
-  }, []);
+    return init;
+  });
 
   // Persist to sessionStorage on every state change
   useEffect(() => {
@@ -218,6 +219,11 @@ export function IdeaValidationProvider({ children }: { children: React.ReactNode
 
   const resetAll = useCallback(() => {
     dispatch({ type: 'RESET_ALL' });
+    try {
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // sessionStorage unavailable – silently ignore
+    }
   }, []);
 
   const value: IdeaValidationContextType = {

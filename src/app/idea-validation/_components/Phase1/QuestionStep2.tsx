@@ -1,5 +1,7 @@
 "use client";
 
+import { countWords } from "@/app/idea-validation/_lib/utils";
+
 import React, { useMemo } from "react";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
 
@@ -8,11 +10,6 @@ const PLACEHOLDER = `Example: FarmConnect is an online B2B marketplace that dire
 const WORD_LIMIT = 500;
 const WARN_THRESHOLD = 450;
 
-function countWords(text: string): number {
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return 0;
-  return trimmed.split(/\s+/).length;
-}
 
 export default function QuestionStep2() {
   const { state, setInput } = useIdeaValidation();

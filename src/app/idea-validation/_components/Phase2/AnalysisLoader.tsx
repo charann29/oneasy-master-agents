@@ -33,7 +33,11 @@ const ITEMS: AnalysisItem[] = [
 export default function AnalysisLoader({ onComplete }: AnalysisLoaderProps) {
   const [completedCount, setCompletedCount] = useState(0);
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+
+  // Keep the ref in sync with the latest callback
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     let cancelled = false;

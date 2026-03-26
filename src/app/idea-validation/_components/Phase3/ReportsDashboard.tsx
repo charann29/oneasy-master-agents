@@ -8,7 +8,6 @@ import {
   Users,
   MessageSquare,
   Layout,
-  RotateCcw,
   AlertCircle,
 } from "lucide-react";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
@@ -36,7 +35,7 @@ function getScoreColor(score: number): string {
 }
 
 export default function ReportsDashboard() {
-  const { state, resetAll, setPhase } = useIdeaValidation();
+  const { state } = useIdeaValidation();
   const [activeTab, setActiveTab] = useState<TabId>("validation");
 
   const { outputs } = state;
@@ -57,30 +56,16 @@ export default function ReportsDashboard() {
   const score = outputs.validation.score;
   const scoreColorClasses = getScoreColor(score);
 
-  const handleStartOver = () => {
-    resetAll();
-    setPhase(1);
-  };
-
   return (
     <div className="space-y-6">
-      {/* Header with score badge and Start Over */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold text-white">Output Reports</h2>
-          <span
-            className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-bold ${scoreColorClasses}`}
-          >
-            Score: {score}/100
-          </span>
-        </div>
-        <button
-          onClick={handleStartOver}
-          className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-gray-300 transition-colors hover:bg-white/10 hover:text-white"
+      {/* Header with score badge */}
+      <div className="flex items-center gap-4">
+        <h2 className="text-2xl font-bold text-white">Output Reports</h2>
+        <span
+          className={`inline-flex items-center rounded-full border px-3 py-1 text-sm font-bold ${scoreColorClasses}`}
         >
-          <RotateCcw className="h-4 w-4" />
-          Start Over
-        </button>
+          Score: {score}/100
+        </span>
       </div>
 
       {/* Tab Bar */}

@@ -1,5 +1,7 @@
 "use client";
 
+import { countWords } from "@/app/idea-validation/_lib/utils";
+
 import React, { useMemo } from "react";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
 
@@ -8,11 +10,6 @@ const PLACEHOLDER = `Example: Farmers lose 25-40% of their income to middlemen a
 const WORD_LIMIT = 200;
 const WARN_THRESHOLD = 180;
 
-function countWords(text: string): number {
-  const trimmed = text.trim();
-  if (trimmed.length === 0) return 0;
-  return trimmed.split(/\s+/).length;
-}
 
 export default function QuestionStep4() {
   const { state, setInput } = useIdeaValidation();

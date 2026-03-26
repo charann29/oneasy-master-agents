@@ -1,5 +1,7 @@
 "use client";
 
+import { containerVariants, itemVariants } from "@/app/idea-validation/_lib/animations";
+
 import { motion } from "framer-motion";
 import type { ValidationOutput, Verdict } from "@/app/idea-validation/_types";
 import ScoreGauge from "./ScoreGauge";
@@ -42,18 +44,7 @@ const breakdownLabels: { key: keyof ValidationOutput["breakdown"]; label: string
   { key: "competitive_advantage", label: "Competitive Advantage" },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-};
 
 export default function ValidationScorecard({ data }: ValidationScorecardProps) {
   const verdict = verdictConfig[data.verdict];

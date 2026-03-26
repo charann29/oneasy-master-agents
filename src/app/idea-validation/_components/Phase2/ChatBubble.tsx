@@ -6,7 +6,6 @@ import type { ChatMessage } from "@/app/idea-validation/_types";
 
 interface ChatBubbleProps {
   message: ChatMessage;
-  isLatest?: boolean;
 }
 
 /** Render a single line of chat content with basic markdown‑like formatting. */
@@ -51,7 +50,7 @@ function renderLine(line: string, idx: number): React.ReactNode {
   );
 }
 
-export default function ChatBubble({ message, isLatest }: ChatBubbleProps) {
+export default function ChatBubble({ message }: ChatBubbleProps) {
   const isAi = message.role === "ai";
   const lines = message.content.split("\n");
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { containerVariants, itemVariants } from "@/app/idea-validation/_lib/animations";
+
 import { motion } from "framer-motion";
 import { Globe, TrendingUp, Users } from "lucide-react";
 import type { MarketAnalysis } from "@/app/idea-validation/_types";
@@ -8,18 +10,7 @@ interface MarketAnalysisReportProps {
   data: MarketAnalysis;
 }
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15 },
-  },
-};
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-};
 
 export default function MarketAnalysisReport({ data }: MarketAnalysisReportProps) {
   return (

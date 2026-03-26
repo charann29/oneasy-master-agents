@@ -14,13 +14,11 @@ import type {
   SlideContent,
 } from '../_types';
 
+import { countWords, clamp } from './utils';
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function wordCount(s: string): number {
-  return s.trim().split(/\s+/).filter(Boolean).length;
-}
 
 function hasNumbers(s: string): boolean {
   return /\d+/.test(s);
@@ -35,10 +33,6 @@ function hasCompetitorMention(s: string): boolean {
     lower.includes('compared') ||
     lower.includes('vs')
   );
-}
-
-function clamp(val: number, min: number, max: number): number {
-  return Math.min(Math.max(val, min), max);
 }
 
 function extractCompanyName(businessIdea: string): string {
@@ -307,7 +301,7 @@ function detectIndustry(businessIdea: string, problemStatement: string): Industr
 
 function calculateScores(inputs: IdeaValidationInputs): ScoreBreakdown {
   // Problem Clarity (out of 25)
-  const probWords = wordCount(inputs.problem_statement);
+  const probWords = countWords(inputs.problem_statement);
   let problemClarity: number;
   if (probWords < 20) problemClarity = 8;
   else if (probWords < 50) problemClarity = 14;
@@ -317,7 +311,7 @@ function calculateScores(inputs: IdeaValidationInputs): ScoreBreakdown {
   problemClarity = clamp(problemClarity, 0, 25);
 
   // Solution Fit (out of 25)
-  const solWords = wordCount(inputs.solution_differentiation);
+  const solWords = countWords(inputs.solution_differentiation);
   let solutionFit: number;
   if (solWords < 30) solutionFit = 8;
   else if (solWords < 80) solutionFit = 14;
@@ -327,7 +321,7 @@ function calculateScores(inputs: IdeaValidationInputs): ScoreBreakdown {
   solutionFit = clamp(solutionFit, 0, 25);
 
   // Market Opportunity (out of 25)
-  const targetWords = wordCount(inputs.target_customer);
+  const targetWords = countWords(inputs.target_customer);
   let marketOpportunity: number;
   if (targetWords < 20) marketOpportunity = 10;
   else if (targetWords < 50) marketOpportunity = 15;
@@ -337,7 +331,7 @@ function calculateScores(inputs: IdeaValidationInputs): ScoreBreakdown {
   marketOpportunity = clamp(marketOpportunity, 0, 25);
 
   // Competitive Advantage (out of 25)
-  const diffWords = wordCount(inputs.solution_differentiation);
+  const diffWords = countWords(inputs.solution_differentiation);
   let competitiveAdvantage: number;
   if (diffWords < 30) competitiveAdvantage = 8;
   else if (diffWords < 80) competitiveAdvantage = 14;
@@ -380,7 +374,7 @@ function generateValidation(inputs: IdeaValidationInputs): ValidationOutput {
   else
     strengths.push(`Addresses a real problem in the ${industry.label} market that customers experience`);
 
-  if (wordCount(inputs.business_idea) > 30)
+  if (countWords(inputs.business_idea) > 30)
     strengths.push('Well-articulated business concept with clear value proposition');
   else
     strengths.push('Concise business idea that communicates the core offering');
@@ -397,7 +391,7 @@ function generateValidation(inputs: IdeaValidationInputs): ValidationOutput {
     weaknesses.push('Target market definition could be more specific — consider narrowing to an ideal customer profile');
   if (breakdown.competitive_advantage < 16)
     weaknesses.push('Competitive differentiation needs strengthening — articulate specific moats');
-  if (wordCount(inputs.problem_statement) < 50)
+  if (countWords(inputs.problem_statement) < 50)
     weaknesses.push('Problem statement could benefit from more data points and customer evidence');
   if (!hasNumbers(inputs.target_customer))
     weaknesses.push('No quantitative market sizing mentioned — add estimated customer counts or spend data');

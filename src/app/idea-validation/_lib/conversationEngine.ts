@@ -1,4 +1,5 @@
 import type { IdeaValidationInputs } from '../_types';
+import { countWords, truncate, getContextLabel } from './utils';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -10,19 +11,6 @@ export interface ConversationQuestion {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function wordCount(s: string): number {
-  return s.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function truncate(s: string, max: number): string {
-  if (s.length <= max) return s;
-  return s.slice(0, max) + '...';
-}
-
-// ---------------------------------------------------------------------------
 // Initial summary
 // ---------------------------------------------------------------------------
 
@@ -31,16 +19,7 @@ function truncate(s: string, max: number): string {
  * Displayed at the start of Phase 2 conversation.
  */
 export function getInitialSummary(inputs: IdeaValidationInputs): string {
-  const contextLabel =
-    inputs.context_type === 'new_idea'
-      ? 'new idea'
-      : inputs.context_type === 'existing_business'
-        ? 'existing business'
-        : inputs.context_type === 'new_product'
-          ? 'new product'
-          : inputs.context_type === 'pivot'
-            ? 'pivot'
-            : 'idea';
+  const contextLabel = getContextLabel(inputs.context_type);
 
   return (
     `I've completed my initial analysis of your **${contextLabel}** idea. Here's what I found so far:\n\n` +
@@ -64,7 +43,7 @@ export function getClarifyingQuestions(inputs: IdeaValidationInputs): Conversati
   const questions: ConversationQuestion[] = [];
 
   // Target audience breadth
-  if (wordCount(inputs.target_customer) < 50) {
+  if (countWords(inputs.target_customer) < 50) {
     questions.push({
       category: 'target_audience',
       question:

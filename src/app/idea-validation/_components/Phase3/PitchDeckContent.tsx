@@ -1,5 +1,7 @@
 "use client";
 
+import { containerVariants, itemVariants } from "@/app/idea-validation/_lib/animations";
+
 import { motion } from "framer-motion";
 import { Presentation } from "lucide-react";
 import type { PitchDeckOutput, SlideContent } from "@/app/idea-validation/_types";
@@ -23,18 +25,7 @@ const slideConfig: { key: keyof PitchDeckOutput; accent: string }[] = [
   { key: "target_customer_slide", accent: "bg-yellow-500" },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-};
 
 function SlideCard({ slide, accentColor, index }: SlideCardProps) {
   return (
