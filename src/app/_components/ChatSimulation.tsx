@@ -1,73 +1,141 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 
+/** Lightweight cancellation token — one per simulation run. */
+export type CancelToken = { current: boolean };
+
+const TYPING_DOT_DELAYS = [0, 0.15, 0.3];
+
+/**
+ * Sleeps for `ms` milliseconds, but rejects early if `token.current` becomes true.
+ * Polls every 100 ms so an off-screen or unmounted component stops within ~100 ms.
+ */
+export function cancellableSleep(ms: number, token: CancelToken): Promise<void> {
+    return new Promise((resolve, reject) => {
+        if (token.current) {
+            reject(new DOMException('Cancelled', 'AbortError'));
+            return;
+        }
+        if (ms <= 0) {
+            resolve();
+            return;
+        }
+
+        let elapsed = 0;
+        const step = Math.min(100, ms);
+        const id = setInterval(() => {
+            elapsed += step;
+            if (token.current) {
+                clearInterval(id);
+                reject(new DOMException('Cancelled', 'AbortError'));
+            } else if (elapsed >= ms) {
+                clearInterval(id);
+                resolve();
+            }
+        }, step);
+    });
+}
+
+/**
+ * Parses a chat line into its display properties.
+ * A line is treated as a user message if it starts with "user:" (case-insensitive),
+ * or if it's the first line and contains no colon (implicit user input).
+ * The "User:" / "AI:" prefix is stripped from the display text.
+ */
+export function parseLine(line: string, index: number) {
+    const isUser = line.toLowerCase().startsWith('user:') || (index === 0 && !line.includes(':'));
+    const text = line.replace(/^(User|AI):\s*/i, '');
+    return { isUser, text };
+}
+
 export default function ChatSimulation({ example }: { example: string }) {
-    const lines = example.split('\n').filter(line => line.trim() !== '');
-    const [visibleIndexes, setVisibleIndexes] = useState<number[]>([]);
+    const lines = useMemo(
+        () => example.split('\n').filter(line => line.trim() !== ''),
+        [example]
+    );
+
+    const parsed = useMemo(
+        () => lines.map((line, i) => parseLine(line, i)),
+        [lines]
+    );
+
+    const [visibleCount, setVisibleCount] = useState(0);
     const [isTyping, setIsTyping] = useState(false);
+    const [round, setRound] = useState(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const isInView = useInView(containerRef, { margin: "-100px" });
 
     useEffect(() => {
-        if (!isInView) return;
+        if (!isInView) {
+            // Off-screen: nothing to start. Any prior run is already cancelled
+            // by its own cleanup function below.
+            return;
+        }
 
-        let mounted = true;
+        // Each run gets its own token so rapid isInView toggling can never
+        // revive a stale simulation — the old token stays cancelled forever.
+        const token: CancelToken = { current: false };
 
         const runSimulation = async () => {
-            while (mounted) {
-                // Reset for new loop
-                setVisibleIndexes([]);
-                setIsTyping(false);
+            try {
+                while (!token.current) {
+                    // Reset for new loop iteration
+                    setVisibleCount(0);
+                    setIsTyping(false);
+                    setRound(r => r + 1);
 
-                await new Promise(r => setTimeout(r, 800));
+                    await cancellableSleep(800, token);
 
-                for (let i = 0; i < lines.length; i++) {
-                    if (!mounted) return;
+                    for (let i = 0; i < parsed.length; i++) {
+                        if (token.current) return;
 
-                    const line = lines[i];
-                    const isUser = line.toLowerCase().startsWith('user:') || (i === 0 && !line.includes(':'));
+                        const { isUser } = parsed[i];
 
-                    if (!isUser) {
-                        setIsTyping(true);
-                        const typingTime = Math.floor(Math.random() * 800) + 1000;
-                        await new Promise(r => setTimeout(r, typingTime));
-                        if (!mounted) return;
-                        setIsTyping(false);
-                    } else if (i !== 0) {
-                        await new Promise(r => setTimeout(r, 800));
+                        if (!isUser) {
+                            setIsTyping(true);
+                            const typingTime = Math.floor(Math.random() * 800) + 1000;
+                            await cancellableSleep(typingTime, token);
+                            if (token.current) return;
+                            setIsTyping(false);
+                        } else if (i !== 0) {
+                            await cancellableSleep(800, token);
+                        }
+
+                        if (token.current) return;
+                        setVisibleCount(i + 1);
+
+                        await cancellableSleep(600, token);
                     }
 
-                    if (!mounted) return;
-                    setVisibleIndexes(prev => [...prev, i]);
-
-                    await new Promise(r => setTimeout(r, 600));
+                    // Pause before restarting
+                    await cancellableSleep(3000, token);
                 }
-
-                // Pause 3 seconds before restarting
-                await new Promise(r => setTimeout(r, 3000));
+            } catch (err) {
+                // AbortError from cancellableSleep — expected when cancelled
+                if (err instanceof DOMException && err.name === 'AbortError') return;
+                throw err;
             }
         };
 
         runSimulation();
 
-        return () => { mounted = false; };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInView, example]);
+        return () => {
+            token.current = true;
+            setIsTyping(false);
+        };
+    }, [isInView, parsed]);
 
     return (
         <div ref={containerRef} className="p-6 space-y-4 min-h-[250px] bg-[url('/grid-pattern.svg')] bg-center flex flex-col justify-end overflow-hidden">
             <AnimatePresence>
-                {lines.map((line, i) => {
-                    if (!visibleIndexes.includes(i)) return null;
-
-                    const isUser = line.toLowerCase().startsWith('user:') || (i === 0 && !line.includes(':'));
-                    const text = line.replace(/^(User|AI):\s*/i, '');
+                {parsed.map(({ isUser, text }, i) => {
+                    if (i >= visibleCount) return null;
 
                     return (
                         <motion.div
-                            key={`${i}-${visibleIndexes.length}`}
+                            key={`${round}-${i}`}
                             initial={{ opacity: 0, y: 15, scale: 0.98 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             transition={{ duration: 0.4, type: 'spring', bounce: 0.3 }}
@@ -94,21 +162,14 @@ export default function ChatSimulation({ example }: { example: string }) {
                     className="flex justify-start"
                 >
                     <div className="bg-red-950/40 rounded-2xl px-4 py-3 rounded-bl-none border border-red-500/20 flex gap-1.5 items-center h-[44px]">
-                        <motion.div
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ repeat: Infinity, duration: 0.8, delay: 0 }}
-                            className="w-1.5 h-1.5 bg-red-400 rounded-full"
-                        />
-                        <motion.div
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ repeat: Infinity, duration: 0.8, delay: 0.15 }}
-                            className="w-1.5 h-1.5 bg-red-400 rounded-full"
-                        />
-                        <motion.div
-                            animate={{ y: [0, -4, 0] }}
-                            transition={{ repeat: Infinity, duration: 0.8, delay: 0.3 }}
-                            className="w-1.5 h-1.5 bg-red-400 rounded-full"
-                        />
+                        {TYPING_DOT_DELAYS.map((delay) => (
+                            <motion.div
+                                key={delay}
+                                animate={{ y: [0, -4, 0] }}
+                                transition={{ repeat: Infinity, duration: 0.8, delay }}
+                                className="w-1.5 h-1.5 bg-red-400 rounded-full"
+                            />
+                        ))}
                     </div>
                 </motion.div>
             )}
