@@ -1,18 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ChatSimulation({ example }: { example: string }) {
     const lines = example.split('\n').filter(line => line.trim() !== '');
     const [visibleIndexes, setVisibleIndexes] = useState<number[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const isInView = useInView(containerRef, { margin: "-100px" });
 
     useEffect(() => {
-        if (!isInView) return;
-
         let mounted = true;
 
         const runSimulation = async () => {
@@ -54,7 +51,7 @@ export default function ChatSimulation({ example }: { example: string }) {
 
         return () => { mounted = false; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isInView, example]);
+    }, [example]);
 
     return (
         <div ref={containerRef} className="p-6 space-y-4 min-h-[250px] bg-[url('/grid-pattern.svg')] bg-center flex flex-col justify-end overflow-hidden">
