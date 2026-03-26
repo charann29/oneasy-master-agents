@@ -72,6 +72,7 @@ function storeRefinementFromResponse(
   category: string,
   userResponse: string,
   setRefinements: (r: Record<string, string>) => void,
+  currentAdditionalContext: string,
 ) {
   switch (category) {
     case "target_audience":
@@ -82,7 +83,13 @@ function storeRefinementFromResponse(
       break;
     case "validation":
     case "unfair_advantage":
-      setRefinements({ additional_context: userResponse });
+      // Append rather than overwrite so both validation and unfair_advantage
+      // answers are preserved if both categories are asked.
+      setRefinements({
+        additional_context: currentAdditionalContext
+          ? `${currentAdditionalContext}. ${userResponse}`
+          : userResponse,
+      });
       break;
   }
 }
@@ -100,20 +107,42 @@ export default function AnalysisChat() {
   const [isComplete, setIsComplete] = useState(false);
 
   // Use refs for conversation tracking to avoid stale closure issues
-  const conversationRoundRef = useRef(() => {
-    const userMessages = chatMessages.filter((m) => m.role === "user");
-    return Math.min(userMessages.length, 3);
-  });
-  const roundRef = useRef(conversationRoundRef.current());
+  const roundRef = useRef(
+    Math.min(chatMessages.filter((m) => m.role === "user").length, 3),
+  );
 
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const hasInitializedRef = useRef(chatMessages.length > 0);
+  const additionalContextRef = useRef(state.refinements.additional_context);
 
   // Get questions from the conversation engine
   const questionsRef = useRef<ConversationQuestion[]>(
     getClarifyingQuestions(inputs),
   );
-  const usedCategoriesRef = useRef<Set<string>>(new Set());
+
+  // Reconstruct used categories from restored chat history so we don't
+  // repeat questions after a page refresh during Phase 2.
+  const usedCategoriesRef = useRef<Set<string>>(
+    (() => {
+      const set = new Set<string>();
+      if (chatMessages.length > 0) {
+        const questions = getClarifyingQuestions(inputs);
+        // Each AI message that matches a question's text means that category was used
+        const aiMessages = chatMessages.filter((m) => m.role === "ai").map((m) => m.content);
+        for (const q of questions) {
+          if (aiMessages.some((msg) => msg.includes(q.question))) {
+            set.add(q.category);
+          }
+        }
+      }
+      return set;
+    })(),
+  );
+
+  // Keep additional context ref in sync with state
+  useEffect(() => {
+    additionalContextRef.current = state.refinements.additional_context;
+  }, [state.refinements.additional_context]);
 
   // -----------------------------------------------------------------------
   // Auto-scroll to bottom when messages change or typing state changes
@@ -204,7 +233,12 @@ export default function AnalysisChat() {
       const lastUsedCategories = Array.from(usedCategoriesRef.current);
       const lastCategory = lastUsedCategories[lastUsedCategories.length - 1];
       if (lastCategory) {
-        storeRefinementFromResponse(lastCategory, text, setRefinements);
+        storeRefinementFromResponse(
+          lastCategory,
+          text,
+          setRefinements,
+          additionalContextRef.current,
+        );
       }
 
       const nextRound = roundRef.current + 1;

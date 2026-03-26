@@ -1,23 +1,13 @@
 "use client";
 
-import { countWords } from "@/app/idea-validation/_lib/utils";
-
-import React, { useMemo } from "react";
+import React from "react";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
+import WordCountTextarea from "./WordCountTextarea";
 
 const PLACEHOLDER = `Example: FarmConnect is an online B2B marketplace that directly connects small and mid-size farmers with restaurants, cloud kitchens, and grocery retailers in Hyderabad. Farmers list their produce with prices, and buyers place orders for next-day delivery. We handle logistics through a network of mini-trucks. Revenue model: 8% commission on every transaction + optional premium listing for farmers. We start with vegetables and fruits, expanding to dairy and grains in Phase 2.`;
 
-const WORD_LIMIT = 500;
-const WARN_THRESHOLD = 450;
-
-
 export default function QuestionStep2() {
   const { state, setInput } = useIdeaValidation();
-  const value = state.inputs.business_idea;
-
-  const wordCount = useMemo(() => countWords(value), [value]);
-  const isNearLimit = wordCount > WARN_THRESHOLD;
-  const isOverLimit = wordCount > WORD_LIMIT;
 
   return (
     <div className="space-y-6">
@@ -32,26 +22,14 @@ export default function QuestionStep2() {
         </p>
       </div>
 
-      <div className="mt-8 space-y-2">
-        <textarea
-          value={value}
-          onChange={(e) => setInput("business_idea", e.target.value)}
+      <div className="mt-8">
+        <WordCountTextarea
+          value={state.inputs.business_idea}
+          onChange={(v) => setInput("business_idea", v)}
           placeholder={PLACEHOLDER}
-          className="w-full min-h-[200px] bg-[#0A0A0A] border border-white/10 focus:border-red-500/50 focus:outline-none rounded-2xl p-4 text-white placeholder:text-gray-600 resize-y transition-colors"
+          wordLimit={500}
+          warnThreshold={450}
         />
-        <div className="flex justify-end">
-          <span
-            className={`text-sm font-medium ${
-              isOverLimit
-                ? "text-red-400"
-                : isNearLimit
-                  ? "text-red-500"
-                  : "text-gray-500"
-            }`}
-          >
-            {wordCount} / {WORD_LIMIT} words
-          </span>
-        </div>
       </div>
     </div>
   );

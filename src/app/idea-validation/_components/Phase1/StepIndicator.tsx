@@ -62,11 +62,7 @@ export default function StepIndicator({
                 </motion.div>
                 <span
                   className={`text-xs font-medium whitespace-nowrap ${
-                    isCompleted
-                      ? "text-red-500"
-                      : isActive
-                        ? "text-red-500"
-                        : "text-gray-500"
+                    isCompleted || isActive ? "text-red-500" : "text-gray-500"
                   }`}
                 >
                   {label}

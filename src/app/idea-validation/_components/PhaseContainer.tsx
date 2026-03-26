@@ -62,8 +62,7 @@ export default function PhaseContainer() {
   }, [currentPhase, outputs, inputs, refinements, setOutputs]);
 
   const handleStartOver = () => {
-    resetAll();
-    setPhase(1);
+    resetAll(); // resets state to initialState which already has currentPhase: 1
   };
 
   return (

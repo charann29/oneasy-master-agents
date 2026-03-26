@@ -246,9 +246,16 @@ describe('positioning output', () => {
   });
 
   it('references the target customer or market', () => {
-    const { positioning } = generateReports(makeInputs(), makeRefinements());
+    const inputs = makeInputs();
+    const { positioning } = generateReports(inputs, makeRefinements());
     // The positioning statement should reference some aspect of the inputs
-    expect(positioning.length).toBeGreaterThan(20);
+    const posLower = positioning.toLowerCase();
+    const referencesInput =
+      posLower.includes('restaurant') ||
+      posLower.includes('farmer') ||
+      posLower.includes('hyderabad') ||
+      posLower.includes('food');
+    expect(referencesInput).toBe(true);
   });
 });
 
@@ -316,13 +323,15 @@ describe('refinements enrichment', () => {
     expect(enriched.validation.score).not.toBe(bare.validation.score);
   });
 
-  it('enriched refinements produce different competitor analysis', () => {
+  it('enriched refinements affect competitive advantage score', () => {
     const inputs = makeMinimalInputs();
     const bare = generateReports(inputs, makeRefinements());
     const enriched = generateReports(inputs, makeRefinements({
       differentiation_clarified: 'Unlike competitor Swiggy and Zomato, we focus on B2B procurement',
     }));
-    // The enriched version should have different content since it now mentions competitors
-    expect(enriched.competitors).toBeDefined();
+    // Adding competitor mentions via refinements should boost the competitive_advantage score
+    expect(enriched.validation.breakdown.competitive_advantage).toBeGreaterThan(
+      bare.validation.breakdown.competitive_advantage,
+    );
   });
 });

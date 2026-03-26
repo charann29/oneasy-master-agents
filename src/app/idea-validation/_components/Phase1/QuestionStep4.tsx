@@ -1,23 +1,13 @@
 "use client";
 
-import { countWords } from "@/app/idea-validation/_lib/utils";
-
-import React, { useMemo } from "react";
+import React from "react";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
+import WordCountTextarea from "./WordCountTextarea";
 
 const PLACEHOLDER = `Example: Farmers lose 25-40% of their income to middlemen at mandis. They have no direct access to bulk buyers like restaurants, which need consistent, fresh supply. On the other side, restaurants spend 2-3 hours daily at mandis, deal with price volatility, inconsistent quality, and lack traceability. There's no efficient, transparent marketplace connecting farmers directly to commercial food businesses in Tier-2 Indian cities.`;
 
-const WORD_LIMIT = 200;
-const WARN_THRESHOLD = 180;
-
-
 export default function QuestionStep4() {
   const { state, setInput } = useIdeaValidation();
-  const value = state.inputs.problem_statement;
-
-  const wordCount = useMemo(() => countWords(value), [value]);
-  const isNearLimit = wordCount > WARN_THRESHOLD;
-  const isOverLimit = wordCount > WORD_LIMIT;
 
   return (
     <div className="space-y-6">
@@ -32,26 +22,14 @@ export default function QuestionStep4() {
         </p>
       </div>
 
-      <div className="mt-8 space-y-2">
-        <textarea
-          value={value}
-          onChange={(e) => setInput("problem_statement", e.target.value)}
+      <div className="mt-8">
+        <WordCountTextarea
+          value={state.inputs.problem_statement}
+          onChange={(v) => setInput("problem_statement", v)}
           placeholder={PLACEHOLDER}
-          className="w-full min-h-[200px] bg-[#0A0A0A] border border-white/10 focus:border-red-500/50 focus:outline-none rounded-2xl p-4 text-white placeholder:text-gray-600 resize-y transition-colors"
+          wordLimit={200}
+          warnThreshold={180}
         />
-        <div className="flex justify-end">
-          <span
-            className={`text-sm font-medium ${
-              isOverLimit
-                ? "text-red-400"
-                : isNearLimit
-                  ? "text-red-500"
-                  : "text-gray-500"
-            }`}
-          >
-            {wordCount} / {WORD_LIMIT} words
-          </span>
-        </div>
       </div>
     </div>
   );

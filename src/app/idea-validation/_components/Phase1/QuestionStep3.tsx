@@ -1,25 +1,13 @@
 "use client";
 
-import { countWords } from "@/app/idea-validation/_lib/utils";
-
-import React, { useMemo } from "react";
+import React from "react";
 import { useIdeaValidation } from "@/app/idea-validation/_context/IdeaValidationContext";
+import WordCountTextarea from "./WordCountTextarea";
 
 const CUSTOMER_PLACEHOLDER = `Example: Our primary customers are mid-size restaurants (₹10L-1Cr monthly revenue) and cloud kitchens in Hyderabad who currently buy vegetables from Bowenpally and Gudimalkapur mandis through middlemen. They are frustrated with inconsistent quality, price markups (30-40%), and unreliable supply. Secondary customers are farmers within 100km of Hyderabad who grow seasonal vegetables and currently sell at mandi at low prices.`;
 
-const WORD_LIMIT = 200;
-const WARN_THRESHOLD = 180;
-
-
 export default function QuestionStep3() {
   const { state, setInput } = useIdeaValidation();
-
-  const customerValue = state.inputs.target_customer;
-  const locationValue = state.inputs.target_location;
-
-  const wordCount = useMemo(() => countWords(customerValue), [customerValue]);
-  const isNearLimit = wordCount > WARN_THRESHOLD;
-  const isOverLimit = wordCount > WORD_LIMIT;
 
   return (
     <div className="space-y-6">
@@ -35,27 +23,13 @@ export default function QuestionStep3() {
 
       <div className="mt-8 space-y-6">
         {/* Target customer textarea */}
-        <div className="space-y-2">
-          <textarea
-            value={customerValue}
-            onChange={(e) => setInput("target_customer", e.target.value)}
-            placeholder={CUSTOMER_PLACEHOLDER}
-            className="w-full min-h-[200px] bg-[#0A0A0A] border border-white/10 focus:border-red-500/50 focus:outline-none rounded-2xl p-4 text-white placeholder:text-gray-600 resize-y transition-colors"
-          />
-          <div className="flex justify-end">
-            <span
-              className={`text-sm font-medium ${
-                isOverLimit
-                  ? "text-red-400"
-                  : isNearLimit
-                    ? "text-red-500"
-                    : "text-gray-500"
-              }`}
-            >
-              {wordCount} / {WORD_LIMIT} words
-            </span>
-          </div>
-        </div>
+        <WordCountTextarea
+          value={state.inputs.target_customer}
+          onChange={(v) => setInput("target_customer", v)}
+          placeholder={CUSTOMER_PLACEHOLDER}
+          wordLimit={200}
+          warnThreshold={180}
+        />
 
         {/* Location input */}
         <div className="space-y-2">
@@ -64,7 +38,7 @@ export default function QuestionStep3() {
           </label>
           <input
             type="text"
-            value={locationValue}
+            value={state.inputs.target_location}
             onChange={(e) => setInput("target_location", e.target.value)}
             placeholder="e.g., Hyderabad, India"
             className="w-full bg-[#0A0A0A] border border-white/10 focus:border-red-500/50 focus:outline-none rounded-xl px-4 py-3 text-white placeholder:text-gray-600 transition-colors"
