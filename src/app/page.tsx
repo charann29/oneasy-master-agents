@@ -4,7 +4,7 @@ import { ArrowRight, Building2, CheckCircle, Sparkles } from 'lucide-react';
 import { agentsData } from './_data/agents';
 import MasterNavbar from './_components/MasterNavbar';
 import Footer from './home/_components/Footer';
-import ChatSimulation from './_components/ChatSimulation';
+import LazyChatSimulation from './_components/LazyChatSimulation';
 import TypewriterHero from './_components/TypewriterHero';
 
 export default function MasterLandingPage() {
@@ -153,7 +153,7 @@ export default function MasterLandingPage() {
                   </div>
 
                   {/* Chat Body */}
-                  <ChatSimulation example={agent.example} />
+                  <LazyChatSimulation example={agent.example} />
 
                   {/* Input Footer */}
                   <div className="p-4 border-t border-white/10 bg-black/40">
